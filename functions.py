@@ -14,8 +14,9 @@ def url_to_lyric_file(url, path):
     try:
         thepage = urllib.request.urlopen(url)
     except ConnectionError:
-        time.sleep(5)
-        print ('sleeping cause couldn\'t connect')
+        print ('Connection failed, you got kicked off')
+        answer = input('Enter anything and hit enter to continue:')
+        thepage = urllib.request.urlopen(url)
     soup = BeautifulSoup(thepage,"html.parser")
     lyrics_html = (soup.find_all('div', class_=''))
     lyrics_raw = ((lyrics_html[1]).get_text()).lower()
@@ -90,7 +91,6 @@ def get_artist_links(artist_page):
             the_link = 'https://' + the_link[5::]
         links.append(the_link)
         counter += 1
-        #time.sleep(0.5)
     print('All %s links parsed' % (links_length))
     return links
 
@@ -123,6 +123,7 @@ def artist_name_to_lyrics_folder(artist_name, folder_path):
     print(artist_link_dict)
     if artist_link_dict['status'] == 1:
         links_list = get_artist_links(artist_link_dict['url'])
+
         if not os.path.exists(newfolder):
             os.makedirs(newfolder)
             counter = 0
@@ -148,7 +149,7 @@ def artist_name_to_lyrics_folder(artist_name, folder_path):
                     counter += 1
                     if counter % 5 == 0:
                         print('%s out of %s lyric links scraped' % (counter, num_of_links))
-                    time.sleep(20)
+                    time.sleep(1)
                 print('finished scraping!')
                 return newfolder
             else:
@@ -229,7 +230,7 @@ def lyric_file_to_song_name(text_file_path):
     return artist_song
 
 #takes two artist names, have to be correct spelling (though it will lower case and despace them), and the base folder they will be located. Returns a report which includes all
-def artist_compare(artist_1, artist_2, basefolder, tolerance):
+def artist_compare(artist_1, artist_2, basefolder, min_phrase_length):
     artist_1_files = artist_lyric_text_files(artist_1, basefolder)
     artist_2_files = artist_lyric_text_files(artist_2, basefolder)
     artist_1_files_length = len(artist_1_files)
@@ -244,7 +245,7 @@ def artist_compare(artist_1, artist_2, basefolder, tolerance):
             if counter % 250 == 0:
                 print ('Completed %s out of %s' %(str(counter), str(total)))
             ij_results = compare_two_file(i, j)
-            if ij_results.highest_length >= int(tolerance):
+            if ij_results.highest_length >= int(min_phrase_length):
                 if ij_results.highest_length > best_match:
                     best_match = ij_results.highest_length
                     best_match_phrase = ij_results.longest_phrase
