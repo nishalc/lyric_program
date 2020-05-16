@@ -70,14 +70,14 @@ def get_artist_links(artist_url):
             the_link = 'https://' + the_link[5::]
         links.append(the_link)
     print('All %s links parsed' % (len(links_html)))
+    links.sort()
     return links, artist
 
 def scrape_artist(artist_url, base):
     # take the artist url and download all of their songs
     links, artist = get_artist_links(artist_url)
-    print(links[:10])
     length = len(links)
-    for i, x in enumerate(links):
+    for i, x in enumerate(links[:5]):
         print(f'Attempting {x}')
         while True:
             try:
@@ -86,11 +86,17 @@ def scrape_artist(artist_url, base):
             except TimeoutError:
                 print('Timeout error, waiting...')
                 time.sleep(10)
-            except urllib.error.URLError:
-                print('URL error, waiting...')
+            except urllib.error.URLError as e:
+                ResponseData = e.reason
+                print(f'URL error: {ResponseData}, waiting...')
                 time.sleep(10)
 
         print(f'Done {i+1} of {length} and waiting')
+
+        with open(os.path.join(base, 'current_progress.txt'), 'w') as f:
+            f.write(str(i))
+            f.close()
+
         time.sleep((random.randint(0,20)))
 
     return 0
