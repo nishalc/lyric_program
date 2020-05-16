@@ -7,7 +7,7 @@ import pickle
 import os
 from pathlib import Path
 import random
-
+import time
 
 def url_to_soup(url):
     req = urllib.request.Request(url, headers={
@@ -21,17 +21,29 @@ def url_to_soup(url):
     soup = BeautifulSoup(thepage, 'html.parser')
     return soup
 
-def soup_to_lyric_file(soup, base):
+def soup_to_lyric_file(soup, base, artist_name=''):
     lyrics_html = (soup.find ('div', class_=''))
-    lyrics_raw = (lyrics_html).get_text().lower().replace("'",'') # get rid of apostroches cause they suck
-    lyrics_raw = re.sub("[\(\[].*?[\)\]]", "", lyrics_raw) # gets rid of anything in brackets
-    lyrics = wordpunct_tokenize(lyrics_raw) # this is a list of all the words and punctuation we kept
+
+    #processing the lyric data
+    lyrics_raw = (lyrics_html).get_text().lower().replace("'",'') # get rid of apostroches
+
+    #lyrics_raw = re.sub("[\(\[].*?[\)\]]", "", lyrics_raw) # gets rid of anything in brackets, WHY?
+    lyrics = wordpunct_tokenize(lyrics_raw) # this is a list of all the words and punctuation as separate strings
 
     artist_title_html = soup.find_all('b')
-    artist = artist_title_html[0].get_text().replace(' Lyrics','')
+    if artist_name == '':
+        artist = artist_title_html[0].get_text().replace(' Lyrics','') #problematic
+    else:
+        artist = artist_name
     title = artist_title_html[1].get_text().replace('"','')
-    album = soup.find('div', class_='songinalbum_title').get_text()
-    album = re.findall(r'"(.*?)"', album)[0]  # take album name out of the quotes
+
+    try: # find the album title if there is one
+        album_raw = soup.find('div', class_='songinalbum_title').get_text()
+        title = re.findall(r'"(.*?)"', album_raw)[0]
+        year = re.findall('\(.*?\)', album_raw)[0][1:-1]
+        album = title + '---' + 'year'
+    except AttributeError:
+        album = 'No album'
 
     directory = base + '/' + artist + '/' + album
     filename = artist + '---' + title
@@ -44,9 +56,9 @@ def soup_to_lyric_file(soup, base):
     return True
 
 def get_artist_links(artist_url):
-    thepage = urllib.request.urlopen(artist_url)
-    soup = BeautifulSoup(thepage, "html.parser")
-    links_html_raw = (soup.find_all(id="listAlbum"))
+    soup = url_to_soup(artist_url)
+    artist = soup.find_all('h1')[0].get_text().replace(' Lyrics', '')
+    links_html_raw = soup.find_all(id="listAlbum")
     links_html = links_html_raw[0].find_all('a', href=True)
     random.shuffle(links_html)
     links = []
@@ -58,19 +70,51 @@ def get_artist_links(artist_url):
             the_link = 'https://' + the_link[5::]
         links.append(the_link)
     print('All %s links parsed' % (len(links_html)))
-    return links
+    return links, artist
 
-def scape_artist(artist_url):
+def scrape_artist(artist_url, base):
     # take the artist url and download all of their songs
-    pass
+    links, artist = get_artist_links(artist_url)
+    print(links[:10])
+    length = len(links)
+    for i, x in enumerate(links):
+        print(f'Attempting {x}')
+        while True:
+            try:
+                soup_to_lyric_file(url_to_soup(x), base, artist)
+                break
+            except TimeoutError:
+                print('Timeout error, waiting...')
+                time.sleep(10)
+            except urllib.error.URLError:
+                print('URL error, waiting...')
+                time.sleep(10)
 
-test_song = 'https://www.azlyrics.com/lyrics/queen/bohemianrhapsody.html'
-test_artist = 'https://www.azlyrics.com/a/aaronlewis.html'
+        print(f'Done {i+1} of {length} and waiting')
+        time.sleep((random.randint(0,20)))
+
+    return 0
+
+# takes the directory of an artist folder and returns a
+def album_song_lists(artist_dir):
+    albums = [os.path.basename(f) for f in os.scandir(artist_dir) if f.is_dir()]
+    files = []
+    for album in os.listdir(artist_dir):
+        album_path = os.path.join(artist_dir,album)
+        for r, d, f in os.walk(album_path):
+            files.append([os.path.join(album_path, song) for song in f])
+    return albums, files
+
+test_song = 'https://www.azlyrics.com//lyrics/kanyewest/breatheinbreatheout.html'
+test_artist = 'https://www.azlyrics.com/w/west.html'
 base = "C:/Lyric data"
 
-soup = url_to_soup(test_song)
-bin = soup_to_lyric_file(soup, base)
+#soup = url_to_soup(test_song)
+#bin = soup_to_lyric_file(soup, base)
+
 #with open(full_path, 'rb') as f:
  #   data = pickle.load(f)
 
-#print(get_artist_links(test_artist))
+soup_to_lyric_file(url_to_soup(test_song), base)
+
+
