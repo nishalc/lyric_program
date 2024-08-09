@@ -8,6 +8,8 @@ class two_song_report():
         self.phrases_dict = phrases_dict
         self.longest_phrases = longest_phrases
 
+# compares two songs in their entirety, returning all the matching phrases in common, the longest
+# should probably be reworked in order to only log a phrase once, at the longest
 def compare_two_file(file_1_path, file_2_path):
     file_1 = open_file(file_1_path)
     file_2 = open_file(file_2_path)
