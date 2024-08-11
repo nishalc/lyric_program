@@ -9,14 +9,8 @@ from pathlib import Path
 import random
 import time
 
-def url_to_soup(url):
-    req = urllib.request.Request(url, headers={
-        'Referer': 'https://www.google.com/',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
-        'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
-        'Upgrade-Insecure-Requests': '1',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_4) AppleWebKit/603.1.30 (KHTML, like Gecko) Version/10.1 Safari/603.1.30'
-    })
+def url_to_soup(url, headers):
+    req = urllib.request.Request(url, headers=headers)
     thepage = urllib.request.urlopen(req)
     soup = BeautifulSoup(thepage, 'html.parser')
     return soup
